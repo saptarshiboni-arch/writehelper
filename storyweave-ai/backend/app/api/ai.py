@@ -8,7 +8,12 @@ and continuity checking.
 from fastapi import APIRouter, Depends, status
 from app.core.security import get_current_user_id
 from app.services.rag_service import RAGService, get_rag_service
+from app.services.writing_assistant_service import (
+    WritingAssistantService,
+    get_writing_assistant_service,
+)
 from app.schemas.rag import ChatRequest, ChatResponse
+from app.schemas.assistant import AssistantChatRequest, AssistantChatResponse
 
 router = APIRouter(tags=["AI Intelligence"])
 
@@ -44,6 +49,24 @@ async def ai_chat(
         top_k=request.top_k or 5,
         min_relevance=request.min_relevance if request.min_relevance is not None else 0.25,
     )
+
+
+@router.post(
+    "/ai/assistant",
+    response_model=AssistantChatResponse,
+    summary="Story-aware writing assistant",
+    description=(
+        "Consultative writing advisor that evaluates character consistency, plot tension, "
+        "dialogue voice, pacing, and continuity against established story canon. "
+        "Offers optional creative suggestions while strictly respecting author ownership."
+    ),
+)
+async def writing_assistant(
+    request: AssistantChatRequest,
+    user_id: str = Depends(get_current_user_id),
+    assistant_service: WritingAssistantService = Depends(get_writing_assistant_service),
+) -> AssistantChatResponse:
+    return await assistant_service.provide_feedback(request=request, user_id=user_id)
 
 
 @router.post("/ai/generate", summary="AI content generation", status_code=501)
